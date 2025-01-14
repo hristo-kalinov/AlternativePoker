@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AlternativePoker", "AlternativePoker\AlternativePoker.vcxproj", "{7D9BA76A-4256-4F42-AC76-5F56051462CD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Debug|x64.ActiveCfg = Debug|x64
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Debug|x64.Build.0 = Debug|x64
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Debug|x86.ActiveCfg = Debug|Win32
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Debug|x86.Build.0 = Debug|Win32
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Release|x64.ActiveCfg = Release|x64
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Release|x64.Build.0 = Release|x64
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Release|x86.ActiveCfg = Release|Win32
+		{7D9BA76A-4256-4F42-AC76-5F56051462CD}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {51FFEAF9-6478-4F59-A80F-A26658D24993}
+	EndGlobalSection
+EndGlobal
