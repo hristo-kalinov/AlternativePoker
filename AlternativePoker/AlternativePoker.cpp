@@ -1,140 +1,131 @@
 #include <iostream>
+#include <ctime>
 
+const unsigned cardTypeStringSize = 4;
+const unsigned suitStringSize = 2;
 const unsigned cardTypesSize = 8;
 const unsigned suitsSize = 4;
-const unsigned deckSize = cardTypesSize*suitsSize*2; //32 for card type, 32 for suits
+const unsigned deckSize = cardTypesSize * suitsSize;
+const unsigned CHIP_VALUE = 10;
+const char cardTypes[][cardTypeStringSize] = { "7", "8", "9", "10", "J", "Q", "K", "A" };
+const char suits[][suitStringSize] = { "C", "D", "H", "S" };
 
-const char cardTypes[][3] = {"7", "8", "9", "10", "J", "Q", "K", "A"};
-const char suits[][2] = {"C", "D", "H", "S"};
-char deck[deckSize][3];
+struct Card
+{
+    char cardType[cardTypeStringSize];
+    char suit[suitStringSize];
+};
+struct Player
+{
+    Card cards[cardTypeStringSize];
+    int money = 1000;
+    int currentBet = 0;
+    bool isActive = true;
+    int totalContribution = 0;
+};
+
+Card deck[deckSize];
 
 unsigned playerCount = 0;
 const unsigned cardsForEachPlayer = 3;
 
-unsigned long seed = 123456789;
+unsigned long seed = 0;
 
 unsigned long lcg(unsigned long& seed) 
 {
     seed = (1664525 * seed + 1013904223) % 4294967296;
     return seed;
 }
-void copystr(const char src[], char dest[]) 
+
+int strLen(const char str[])
 {
-    int i = 0;
-    while (src[i] != '\0') 
+    int len = 0;
+    while (*str)
     {
-        dest[i] = src[i];
-        i++;
+        len++;
+        str++;
     }
-    dest[i] = '\0';
+    return len;
 }
-void appendstr(const char src[], char dest[]) 
+void copystr(const char* src, char* dest)
 {
-    int dest_len = 0;
-    while (dest[dest_len] != '\0') 
+    while (*src)
     {
-        dest_len++;
+        *dest = *src;
+        src++;
+        dest++;
     }
-
-    int src_len = 0;
-    while (src[src_len] != '\0') 
-    {
-        dest[dest_len] = src[src_len];
-        dest_len++;
-        src_len++;
-    }
-
-    dest[dest_len] = '\0';
-}
-
-//Fisher-Yates
-void shuffleDeck() 
-{
-    for (int i = deckSize - 2; i >= 2; i -= 2) 
-    {
-        unsigned int j = lcg(seed) % (i / 2 + 1) * 2;
-
-        // Swap card type
-        char temp[3];
-        copystr(deck[i], temp);
-        copystr(deck[j], deck[i]);
-        copystr(temp, deck[j]);
-
-        // Swap suit
-        copystr(deck[i + 1], temp);
-        copystr(deck[j + 1], deck[i + 1]);
-        copystr(temp, deck[j + 1]);
-    }
-}
-
-void dealCards(char*** &playersCards)
-{
-    for (int i = 0; i < playerCount; i++)
-    {
-        playersCards[i] = new char* [cardsForEachPlayer];
-
-        for (int j = 0; j < cardsForEachPlayer; j++)
-        {
-            playersCards[i][j] = new char[4];
-        }
-    }
-
-    unsigned cardIndex = 0;
-    for (int i = 0; i < cardsForEachPlayer; i++)
-    {
-        for (int j = 0; j < playerCount; j++)
-        {
-            char card[4];
-            copystr(deck[cardIndex++], card);
-            appendstr(deck[cardIndex++], card);
-            copystr(card, playersCards[j][i]);
-        }
-    }
+    *dest = '\0';
 }
 void inflateDeck()
 {
     unsigned counter = 0;
     for (int i = 0; i < cardTypesSize; i++) {
         for (int j = 0; j < suitsSize; j++) {
-            copystr(cardTypes[i], deck[counter++]);
-            copystr(suits[j], deck[counter++]);
+            copystr(cardTypes[i], deck[counter].cardType);
+            copystr(suits[j], deck[counter++].suit);
+        }
+    }
+}
+void shuffleDeck()
+{
+    // Fisher-Yates algorithm
+    for (int i = deckSize - 1; i >= 1; i--)
+    {
+        unsigned int j = lcg(seed) % (i + 1); // Generate a random index between 0 and i
+        // Swap deck[i] and deck[j]
+        Card temp = deck[i];
+        deck[i] = deck[j];
+        deck[j] = temp;
+    }
+}
+void dealCards(Player* &players)
+{
+    unsigned cardIndex = 0;
+    for (int i = 0; i < playerCount; i++)
+    {
+        for (int j = 0; j < cardsForEachPlayer; j++)
+        {
+            players[i].cards[j] = deck[cardIndex];
+            cardIndex++;
         }
     }
 }
 
-void releaseMemory(char*** &playersCards)
+void releaseMemory(Player* &players)
+{
+    delete[] players;
+}
+
+void printPlayersCards(Player* players)
 {
     for (int i = 0; i < playerCount; i++)
     {
+        std::cout << "Player " << i + 1 << "'s cards:\n";
         for (int j = 0; j < cardsForEachPlayer; j++)
         {
-            delete[] playersCards[i][j];
-        }
-        delete[] playersCards[i];
-    }
-    delete[] playersCards;
-}
-
-int main() {
-    std::cout << "How many players are playing(2-9)?\n";
-    std::cin >> playerCount;
-    inflateDeck();
-    shuffleDeck();
-
-    char*** playersCards = new char** [playerCount];
-
-    dealCards(playersCards);
-    for (int i = 0; i < playerCount; i++)
-    {
-        std::cout << "Player " << i+1 << "'s cards:\n";
-        for (int j = 0; j < cardsForEachPlayer; j++)
-        {
-            std::cout << playersCards[i][j] << ' ';
+            std::cout << players[i].cards[j].cardType;
+            std::cout << players[i].cards[j].suit << ' ';
         }
         std::cout << "\n";
     }
-    
-    releaseMemory(playersCards);
+}
+
+int main() {
+    seed = std::time(0);
+
+    std::cout << "How many players are playing(2-9)?\n";
+    std::cin >> playerCount;
+
+    inflateDeck();
+    shuffleDeck();
+
+    Player* players = new Player[playerCount];
+
+    dealCards(players);
+    printPlayersCards(players);
+
+    releaseMemory(players);
 
     return 0;
 }
