@@ -19,8 +19,8 @@ struct Player
 {
     Card cards[cardTypeStringSize];
     int money = 1000;
-    int currentBet = 0;
     bool isActive = true;
+    bool hasActed = false;
     int totalContribution = 0;
 };
 
@@ -29,7 +29,7 @@ Card deck[deckSize];
 unsigned playerCount = 0;
 const unsigned cardsForEachPlayer = 3;
 
-unsigned long seed = 0;
+unsigned long seed = std::time(0);
 
 unsigned long lcg(unsigned long& seed) 
 {
@@ -92,11 +92,6 @@ void dealCards(Player* &players)
     }
 }
 
-void releaseMemory(Player* &players)
-{
-    delete[] players;
-}
-
 void printPlayersCards(Player* players)
 {
     for (int i = 0; i < playerCount; i++)
@@ -111,12 +106,38 @@ void printPlayersCards(Player* players)
     }
 }
 
-int main() {
-    seed = std::time(0);
+void releaseMemory(Player* &players)
+{
+    delete[] players;
+}
 
+bool allPlayersHaveActed(Player* players)
+{
+    for (int i = 0; i < playerCount; i++)
+    {
+        if (players[i].hasActed == false)
+            return false;
+    }
+    return true;
+}
+
+bool onePlayerActive(Player* players) 
+{
+    unsigned activePlayerCount = 0;
+    for (int i = 0; i < playerCount; i++)
+    {
+        if (players[i].isActive)
+        {
+            activePlayerCount++;
+        }
+    }
+    if (activePlayerCount == 1)
+        return true;
+    return false;
+}
+int main() {
     std::cout << "How many players are playing(2-9)?\n";
     std::cin >> playerCount;
-
     inflateDeck();
     shuffleDeck();
 
@@ -124,6 +145,97 @@ int main() {
 
     dealCards(players);
     printPlayersCards(players);
+
+    unsigned pot = 0;
+    int currentBet = 0;
+    bool isBettingComplete = false;
+    for (int i = 0; i < playerCount; i++)
+    {
+        players[i].totalContribution += CHIP_VALUE;
+        players[i].isActive = true;
+        players[i].money -= CHIP_VALUE;
+        pot += CHIP_VALUE;
+        currentBet += CHIP_VALUE;
+    }
+
+    unsigned lastPlayerToRaise = 0;
+    while (!isBettingComplete)
+    {
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (!players[i].isActive || players[i].hasActed)
+                continue;
+            std::cout << "\nPlayer " << i + 1 << ", it's your turn.\n";
+            std::cout << "Pot: " << pot << "\n";
+            std::cout << "Current bet: " << currentBet << "\n";
+            std::cout << "Your total contribution: " << players[i].totalContribution << "\n";
+            std::cout << "Your money: " << players[i].money << "\n";
+            std::cout << "Your cards: ";
+            for (int j = 0; j < cardsForEachPlayer; j++) {
+                std::cout << players[i].cards[j].cardType << players[i].cards[j].suit << " ";
+            }
+            std::cout << "\n";
+
+            std::cout << "Choose an action: (c) Call, (r) Raise, (f) Fold\n";
+            char action;
+            std::cin >> action;
+
+            while (action != 'c' && action != 'r' && action != 'f') {
+                std::cout << "Invalid action. Please choose (c) Call, (r) Raise, or (f) Fold: ";
+                std::cin >> action;
+            }
+
+            if (action == 'c')
+            {
+                int amountToCall = currentBet - players[i].totalContribution;
+                players[i].money -= amountToCall;
+                pot += amountToCall;
+                players[i].hasActed = true;
+            }
+            if (action == 'r')
+            {
+                unsigned amountToRaise = 0;
+                std::cout << "Amount to Raise: ";
+                std::cin >> amountToRaise;
+
+                while (amountToRaise > players[i].money || amountToRaise <= 0) {
+                    std::cout << "Invalid amount. You can raise up to " << players[i].money << ": ";
+                    std::cin >> amountToRaise;
+                }
+
+                currentBet += amountToRaise;
+                pot += amountToRaise;
+
+                players[i].totalContribution += amountToRaise;
+                players[i].money -= amountToRaise;
+                isBettingComplete = false;
+                for (int j = 0; j < playerCount; j++) {
+                    if (players[j].isActive && !players[j].hasActed) {
+                        players[j].hasActed = false;
+                    }
+                }
+                players[i].hasActed = true;
+            }
+            if (action == 'f')
+            {
+                players[i].isActive = false;
+                players[i].hasActed = true;
+            }
+            if (allPlayersHaveActed(players))
+            {
+                isBettingComplete = true;
+                break;
+            }
+            if (onePlayerActive(players))
+            {
+                isBettingComplete = true;
+                break;
+            }
+
+        }
+    }
+
+
 
     releaseMemory(players);
 
