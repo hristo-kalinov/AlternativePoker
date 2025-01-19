@@ -324,6 +324,21 @@ unsigned getHandScore(Card* cards)
     }
 }
 
+void printPlayersCards(Player* players)
+{
+    for (int i = 0; i < playerCount; i++)
+    {
+        if (!players[i].isActive)
+            continue;
+        std::cout << "Player " << i + 1 << "'s cards:\n";
+        for (int j = 0; j < cardsForEachPlayer; j++)
+        {
+            std::cout << players[i].cards[j].cardType << players[i].cards[j].suit << ' ';
+        }
+        std::cout << " (Score: " << getHandScore(players[i].cards) << ")\n";
+    }
+}
+
 void determineWinner(Player* players, unsigned pot)
 {
     unsigned highestScore = 0;
@@ -386,18 +401,6 @@ void determineWinner(Player* players, unsigned pot)
         determineWinner(players, pot);
     }
 }
-void printPlayersCards(Player* players)
-{
-    for (int i = 0; i < playerCount; i++)
-    {
-        std::cout << "Player " << i + 1 << "'s cards:\n";
-        for (int j = 0; j < cardsForEachPlayer; j++)
-        {
-            std::cout << players[i].cards[j].cardType << players[i].cards[j].suit << ' ';
-        }
-        std::cout << " (Score: " << getHandScore(players[i].cards) << ")\n";
-    }
-}
 
 int main()
 {
@@ -415,6 +418,8 @@ int main()
 
     while (true)
     {
+        for (int i = 0; i < playerCount; i++)
+            players[i].isActive = true;
         shuffleDeck();
         dealCards(players);
         printPlayersCards(players);
