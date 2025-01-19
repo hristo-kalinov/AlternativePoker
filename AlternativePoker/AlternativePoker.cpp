@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <fstream>
 #include <ctime>
 
 const unsigned cardTypeStringSize = 4;
@@ -107,7 +108,8 @@ bool allPlayersHaveActed(Player* players)
 {
     for (int i = 0; i < playerCount; i++)
     {
-        if (players[i].hasActed == false) return false;
+        if (players[i].hasActed == false) 
+            return false;
     }
     return true;
 }
@@ -122,11 +124,9 @@ bool onePlayerActive(Player* players)
     return activePlayerCount == 1;
 }
 
-void bettingLoop(Player* players, unsigned& pot)
+void initializeBetting(Player* players, unsigned& pot, int& currentBet) 
 {
-    int currentBet = 0;
-    bool isBettingComplete = false;
-    for (int i = 0; i < playerCount; i++)
+    for (int i = 0; i < playerCount; i++) 
     {
         players[i].totalContribution += CHIP_VALUE;
         players[i].isActive = true;
@@ -134,77 +134,120 @@ void bettingLoop(Player* players, unsigned& pot)
         pot += CHIP_VALUE;
         currentBet += CHIP_VALUE;
     }
+}
 
-    while (!isBettingComplete)
+void displayPlayerStatus(const Player& player, int playerIndex, unsigned pot, int currentBet) 
+{
+    std::cout << "\nPlayer " << playerIndex + 1 << ", it's your turn.\n";
+    std::cout << "Pot: " << pot << "\n";
+    std::cout << "Current bet: " << currentBet << "\n";
+    std::cout << "Your total contribution: " << player.totalContribution << "\n";
+    std::cout << "Your money: " << player.money << "\n";
+    std::cout << "Your cards: ";
+    for (int j = 0; j < cardsForEachPlayer; j++) {
+        std::cout << player.cards[j].cardType << player.cards[j].suit << " ";
+    }
+    std::cout << "\n";
+}
+
+char getPlayerAction() 
+{
+    char action;
+    std::cout << "Choose an action: (c) Call, (r) Raise, (f) Fold\n";
+    std::cin >> action;
+    while (action != 'c' && action != 'r' && action != 'f') {
+        std::cout << "Invalid action. Please choose (c) Call, (r) Raise, or (f) Fold: ";
+        std::cin >> action;
+    }
+    return action;
+}
+
+void handleCall(Player& player, unsigned& pot, int currentBet) 
+{
+    int amountToCall = currentBet - player.totalContribution;
+    if (amountToCall > player.money) 
     {
-        for (int i = 0; i < playerCount; i++)
+        std::cout << "Player cannot afford to call and must fold.\n";
+        player.isActive = false;
+    }
+    else 
+    {
+        player.money -= amountToCall;
+        pot += amountToCall;
+        player.totalContribution += amountToCall;
+        player.hasActed = true;
+    }
+}
+
+void handleRaise(Player* players, Player& player, unsigned& pot, int& currentBet) 
+{
+    unsigned amountToRaise = 0;
+    std::cout << "Amount to Raise: ";
+    std::cin >> amountToRaise;
+
+    while (amountToRaise > player.money || amountToRaise <= 0) 
+    {
+        std::cout << "Invalid amount. You can raise up to " << player.money << ": ";
+        std::cin >> amountToRaise;
+    }
+
+    currentBet += amountToRaise;
+    pot += amountToRaise;
+    player.totalContribution += amountToRaise;
+    player.money -= amountToRaise;
+
+    for (int j = 0; j < playerCount; j++) 
+    {
+        if (players[j].isActive && players[j].hasActed)
+            players[j].hasActed = false;
+    }
+    player.hasActed = true;
+}
+
+void handleFold(Player& player) 
+{
+    player.isActive = false;
+    player.hasActed = true;
+}
+
+bool isBettingComplete(Player* players) 
+{
+    return allPlayersHaveActed(players) || onePlayerActive(players);
+}
+
+void bettingLoop(Player* players, unsigned& pot) 
+{
+    int currentBet = 0;
+    bool bettingComplete = false;
+
+    // Initialize betting
+    initializeBetting(players, pot, currentBet);
+
+    while (!bettingComplete) 
+    {
+        for (int i = 0; i < playerCount; i++) 
         {
             if (!players[i].isActive || players[i].hasActed) continue;
-            std::cout << "\nPlayer " << i + 1 << ", it's your turn.\n";
-            std::cout << "Pot: " << pot << "\n";
-            std::cout << "Current bet: " << currentBet << "\n";
-            std::cout << "Your total contribution: " << players[i].totalContribution << "\n";
-            std::cout << "Your money: " << players[i].money << "\n";
-            std::cout << "Your cards: ";
-            for (int j = 0; j < cardsForEachPlayer; j++)
+
+            displayPlayerStatus(players[i], i, pot, currentBet);
+            char action = getPlayerAction();
+
+            if (action == 'c') 
             {
-                std::cout << players[i].cards[j].cardType << players[i].cards[j].suit << " ";
+                handleCall(players[i], pot, currentBet);
             }
-            std::cout << "\n";
-
-            std::cout << "Choose an action: (c) Call, (r) Raise, (f) Fold\n";
-            char action;
-            std::cin >> action;
-
-            while (action != 'c' && action != 'r' && action != 'f')
+            else if (action == 'r') 
             {
-                std::cout << "Invalid action. Please choose (c) Call, (r) Raise, or (f) Fold: ";
-                std::cin >> action;
+                handleRaise(players, players[i], pot, currentBet);
+            }
+            else if (action == 'f') 
+            {
+                handleFold(players[i]);
             }
 
-            if (action == 'c')
+            if(isBettingComplete(players)) 
             {
-                int amountToCall = currentBet - players[i].totalContribution;
-                players[i].money -= amountToCall;
-                pot += amountToCall;
-                players[i].hasActed = true;
-            }
-            if (action == 'r')
-            {
-                unsigned amountToRaise = 0;
-                std::cout << "Amount to Raise: ";
-                std::cin >> amountToRaise;
-
-                while (amountToRaise > players[i].money || amountToRaise <= 0)
-                {
-                    std::cout << "Invalid amount. You can raise up to " << players[i].money << ": ";
-                    std::cin >> amountToRaise;
-                }
-
-                currentBet += amountToRaise;
-                pot += amountToRaise;
-                players[i].totalContribution += amountToRaise;
-                players[i].money -= amountToRaise;
-                isBettingComplete = false;
-                for (int j = 0; j < playerCount; j++)
-                {
-                    if (players[j].isActive && !players[j].hasActed) players[j].hasActed = false;
-                }
-                players[i].hasActed = true;
-            }
-            if (action == 'f')
-            {
-                players[i].isActive = false;
-                players[i].hasActed = true;
-            }
-            if (allPlayersHaveActed(players))
-            {
-                isBettingComplete = true;
-                break;
-            }
-            if (onePlayerActive(players))
-            {
-                isBettingComplete = true;
+                bettingComplete = true;
                 break;
             }
         }
@@ -233,95 +276,167 @@ unsigned getCardScore(char* cardType)
     return 0; //shouldn't happen
 }
 
-unsigned getHandScore(Card* cards)
+bool allCardsSameType(Card* cards)
 {
-    if (stringcmp(cards[0].cardType, cards[1].cardType) && stringcmp(cards[1].cardType, cards[2].cardType)) //if all cards are the same
-    {
-        if (stringcmp(cards[0].cardType, "7")) //if all are 7, return 34
-            return 34;
-        return getCardScore(cards[0].cardType) * 3; //else return cardValue*3
-    }
+    return stringcmp(cards[0].cardType, cards[1].cardType) && stringcmp(cards[1].cardType, cards[2].cardType);
+}
 
-    bool containsSevenOfClubs = false;
-    unsigned sevenOfClubsPos = 0;
-    unsigned sevenOfClubsValue = 11;
-    for (int i = 0; i < cardsForEachPlayer; i++) //if card contains 7 of clubs, enter special checking mode
+bool allCardsAreSevens(Card* cards)
+{
+    return stringcmp(cards[0].cardType, "7");
+}
+
+bool checkForSevenOfClubs(Card* cards, unsigned& sevenOfClubsPos)
+{
+    for (int i = 0; i < cardsForEachPlayer; i++)
     {
         if (stringcmp(cards[i].cardType, "7") && stringcmp(cards[i].suit, "C"))
         {
-            containsSevenOfClubs = true;
             sevenOfClubsPos = i;
+            return true;
         }
     }
+    return false;
+}
 
-    if (containsSevenOfClubs)
+unsigned handleSevenOfClubsCase(Card* cards, unsigned sevenOfClubsPos)
+{
+    Card card1, card2;
+    if (sevenOfClubsPos == 0)
     {
-        //Determine which card is which
-        Card card1;
-        Card card2;
-        if (sevenOfClubsPos == 0)
-        {
-            card1 = cards[1];
-            card2 = cards[2];
-        }
-        else if (sevenOfClubsPos == 1)
-        {
-            card1 = cards[0];
-            card2 = cards[2];
-        }
-        else if (sevenOfClubsPos == 2)
-        {
-            card1 = cards[0];
-            card2 = cards[1];
-        }
-        int card1Score = getCardScore(card1.cardType);
-        int card2Score = getCardScore(card2.cardType);
-
-        //two cards of the same type
-        if (stringcmp(card1.cardType, card2.cardType)) 
-            return card1Score * 2 + sevenOfClubsValue;
-        //two cards of the same suit
-        if (stringcmp(card1.suit, card2.suit)) 
-            return card1Score + card2Score + sevenOfClubsValue;
-
-        //high card
-        if (card1Score > card2Score)
-            return card1Score + sevenOfClubsValue;
-        else 
-            return card2Score + sevenOfClubsValue;
+        card1 = cards[1];
+        card2 = cards[2];
     }
-    if (stringcmp(cards[0].suit, cards[1].suit) && stringcmp(cards[1].suit, cards[2].suit)) //All suits are the same
-        return getCardScore(cards[0].cardType) + getCardScore(cards[1].cardType) + getCardScore(cards[2].cardType);
-    if (stringcmp(cards[0].suit, cards[1].suit)) //first two cards are the same
-        return getCardScore(cards[0].cardType) + getCardScore(cards[1].cardType);
-    if (stringcmp(cards[0].suit, cards[2].suit)) //second two
-        return getCardScore(cards[0].cardType) + getCardScore(cards[2].cardType);
-    if (stringcmp(cards[1].suit, cards[2].suit)) //first and third
-        return getCardScore(cards[1].cardType) + getCardScore(cards[2].cardType);
+    else if (sevenOfClubsPos == 1)
+    {
+        card1 = cards[0];
+        card2 = cards[2];
+    }
+    else if (sevenOfClubsPos == 2)
+    {
+        card1 = cards[0];
+        card2 = cards[1];
+    }
 
+    int card1Score = getCardScore(card1.cardType);
+    int card2Score = getCardScore(card2.cardType);
 
-    unsigned sevensCount = 0;
+    if (stringcmp(card1.cardType, card2.cardType))
+        return card1Score * 2 + 11;
+
+    if (stringcmp(card1.suit, card2.suit))
+        return card1Score + card2Score + 11;
+
+    if (card1Score > card2Score)
+        return card1Score + 11;
+    else
+        return card2Score + 11;
+}
+
+bool allSuitsSame(Card* cards)
+{
+    return stringcmp(cards[0].suit, cards[1].suit) && stringcmp(cards[1].suit, cards[2].suit);
+}
+
+unsigned getTotalScoreForAllCards(Card* cards)
+{
+    return getCardScore(cards[0].cardType) + getCardScore(cards[1].cardType) + getCardScore(cards[2].cardType);
+}
+
+bool firstTwoCardsSameSuit(Card* cards)
+{
+    return stringcmp(cards[0].suit, cards[1].suit);
+}
+
+bool firstAndThirdCardsSameSuit(Card* cards)
+{
+    return stringcmp(cards[0].suit, cards[2].suit);
+}
+
+bool secondAndThirdCardsSameSuit(Card* cards)
+{
+    return stringcmp(cards[1].suit, cards[2].suit);
+}
+
+unsigned countAces(Card* cards)
+{
     unsigned acesCount = 0;
     for (int i = 0; i < cardsForEachPlayer; i++)
     {
-        if (stringcmp(cards[i].cardType, "A")) acesCount++;
-        if (stringcmp(cards[i].cardType, "7")) sevensCount++;
+        if (stringcmp(cards[i].cardType, "A"))
+            acesCount++;
+    }
+    return acesCount;
+}
+
+unsigned countSevens(Card* cards)
+{
+    unsigned sevensCount = 0;
+    for (int i = 0; i < cardsForEachPlayer; i++)
+    {
+        if (stringcmp(cards[i].cardType, "7"))
+            sevensCount++;
+    }
+    return sevensCount;
+}
+
+unsigned getHighestCardScore(Card* cards)
+{
+    unsigned highestScore = 0;
+    for (int i = 0; i < cardsForEachPlayer; i++)
+    {
+        if (getCardScore(cards[i].cardType) > highestScore)
+            highestScore = getCardScore(cards[i].cardType);
+    }
+    return highestScore;
+}
+
+unsigned getHandScore(Card* cards)
+{
+    if (allCardsSameType(cards))
+    {
+        if (allCardsAreSevens(cards))
+            return 34;
+        return getCardScore(cards[0].cardType) * 3;
     }
 
-    if (acesCount >= 2) 
+    unsigned sevenOfClubsPos;
+    bool containsSevenOfClubs = checkForSevenOfClubs(cards, sevenOfClubsPos);
+
+    if (containsSevenOfClubs)
+    {
+        return handleSevenOfClubsCase(cards, sevenOfClubsPos);
+    }
+
+    if (allSuitsSame(cards))
+    {
+        return getTotalScoreForAllCards(cards);
+    }
+
+    if (firstTwoCardsSameSuit(cards))
+    {
+        return getCardScore(cards[0].cardType) + getCardScore(cards[1].cardType);
+    }
+
+    if (firstAndThirdCardsSameSuit(cards))
+    {
+        return getCardScore(cards[0].cardType) + getCardScore(cards[2].cardType);
+    }
+
+    if (secondAndThirdCardsSameSuit(cards))
+    {
+        return getCardScore(cards[1].cardType) + getCardScore(cards[2].cardType);
+    }
+
+    unsigned acesCount = countAces(cards);
+    unsigned sevensCount = countSevens(cards);
+
+    if (acesCount >= 2)
         return 22;
-    if (sevensCount >= 2) 
+    if (sevensCount >= 2)
         return 23;
 
-    else
-    {
-        unsigned highestScore = 0;
-        for (int i = 0; i < cardsForEachPlayer; i++)
-        {
-            if (getCardScore(cards[i].cardType) > highestScore) highestScore = getCardScore(cards[i].cardType);
-        }
-        return highestScore;
-    }
+    return getHighestCardScore(cards);
 }
 
 void printPlayersCards(Player* players)
@@ -402,20 +517,55 @@ void determineWinner(Player* players, unsigned pot)
     }
 }
 
-int main()
+void createFile(Player* players)
 {
-    std::cout << "How many players are playing(2-9)?\n";
+    const char* filename = "money.txt";
+    std::ofstream file(filename);
+    for (int i = 0; i < 9; i++)
+    {
+        file << players[i].money << std::endl;
+    }
+}
+
+void readFile(Player* players)
+{
+    const char* filename = "money.txt";
+    std::ifstream file(filename);
+    if (!file)
+    {
+        createFile(players);
+        return;
+    }
+    for (int i = 0; i < playerCount; i++)
+    {
+        file >> players[i].money;
+    }
+}
+
+void writeFile(Player* players)
+{
+    const char* filename = "money.txt";
+    std::ofstream file(filename);
+    for (int i = 0; i < playerCount; i++) 
+    {
+        file << players[i].money << std::endl;
+    }
+    file.close();
+}
+
+void initializeGame()
+{
+    std::cout << "How many players are playing (2-9)?\n";
     while (true)
     {
         std::cin >> playerCount;
         if (playerCount >= 2 && playerCount <= 9) break;
         std::cerr << "Invalid number of players. Please enter a number between 2 and 9.\n";
     }
+}
 
-
-    inflateDeck();
-    Player* players = new Player[playerCount];
-
+void playGame(Player* players)
+{
     while (true)
     {
         for (int i = 0; i < playerCount; i++)
@@ -431,8 +581,20 @@ int main()
         std::cout << "Start a new game? (y/n): ";
         std::cin >> choice;
         if (choice != 'y')
+        {
+            writeFile(players);
             break;
+        }
     }
+    
+}
+int main()
+{
+    initializeGame();
+    inflateDeck();
+    Player* players = new Player[playerCount];
+    readFile(players);
+    playGame(players);
     releaseMemory(players);
 
     return 0;
