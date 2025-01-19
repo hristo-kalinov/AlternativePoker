@@ -16,7 +16,6 @@ struct Card
     char cardType[cardTypeStringSize];
     char suit[suitStringSize];
 };
-
 struct Player
 {
     Card cards[cardsForEachPlayer];
@@ -32,7 +31,11 @@ unsigned long seed = std::time(0);
 
 unsigned long lcg(unsigned long& seed)
 {
-    seed = (1664525 * seed + 1013904223) % 4294967296;
+    unsigned long long multiplier = 1664525;
+    unsigned long long increment = 1013904223;
+    unsigned long long modulus = 4294967296;
+
+    seed = (multiplier * seed + increment) % modulus;
     return seed;
 }
 
@@ -92,19 +95,6 @@ void dealCards(Player*& players)
             players[i].cards[j] = deck[cardIndex];
             cardIndex++;
         }
-    }
-}
-
-void printPlayersCards(Player* players)
-{
-    for (int i = 0; i < playerCount; i++)
-    {
-        std::cout << "Player " << i + 1 << "'s cards:\n";
-        for (int j = 0; j < cardsForEachPlayer; j++)
-        {
-            std::cout << players[i].cards[j].cardType << players[i].cards[j].suit << ' ';
-        }
-        std::cout << "\n";
     }
 }
 
@@ -237,23 +227,25 @@ unsigned getCardScore(char* cardType)
     if (stringcmp(cardType, "7")) return 7;
     if (stringcmp(cardType, "8")) return 8;
     if (stringcmp(cardType, "9")) return 9;
-    if (stringcmp(cardType, "10") || stringcmp(cardType, "J") || stringcmp(cardType, "Q") || stringcmp(cardType, "K")) return 10;
+    if (stringcmp(cardType, "10") || stringcmp(cardType, "J") || 
+        stringcmp(cardType, "Q") || stringcmp(cardType, "K")) return 10;
     if (stringcmp(cardType, "A")) return 11;
-    return 0;
+    return 0; //shouldn't happen
 }
 
 unsigned getHandScore(Card* cards)
 {
-    if (stringcmp(cards[0].cardType, cards[1].cardType) && stringcmp(cards[1].cardType, cards[2].cardType))
+    if (stringcmp(cards[0].cardType, cards[1].cardType) && stringcmp(cards[1].cardType, cards[2].cardType)) //if all cards are the same
     {
-        if (stringcmp(cards[0].cardType, "7")) return 34;
-        return getCardScore(cards[0].cardType) * 3;
+        if (stringcmp(cards[0].cardType, "7")) //if all are 7, return 34
+            return 34;
+        return getCardScore(cards[0].cardType) * 3; //else return cardValue*3
     }
 
     bool containsSevenOfClubs = false;
     unsigned sevenOfClubsPos = 0;
     unsigned sevenOfClubsValue = 11;
-    for (int i = 0; i < cardsForEachPlayer; i++)
+    for (int i = 0; i < cardsForEachPlayer; i++) //if card contains 7 of clubs, enter special checking mode
     {
         if (stringcmp(cards[i].cardType, "7") && stringcmp(cards[i].suit, "C"))
         {
@@ -264,8 +256,9 @@ unsigned getHandScore(Card* cards)
 
     if (containsSevenOfClubs)
     {
-        Card card1 = (sevenOfClubsPos == 0) ? cards[1] : cards[0];
-        Card card2 = (sevenOfClubsPos == 1) ? cards[2] : cards[1];
+        //Determine which card is which
+        Card card1;
+        Card card2;
         if (sevenOfClubsPos == 0)
         {
             card1 = cards[1];
@@ -284,46 +277,41 @@ unsigned getHandScore(Card* cards)
         int card1Score = getCardScore(card1.cardType);
         int card2Score = getCardScore(card2.cardType);
 
-        if (stringcmp(card1.cardType, card2.cardType)) return card1Score * 2 + sevenOfClubsValue;
-        if (stringcmp(card1.suit, card2.suit)) return card1Score + card2Score + sevenOfClubsValue;
+        //two cards of the same type
+        if (stringcmp(card1.cardType, card2.cardType)) 
+            return card1Score * 2 + sevenOfClubsValue;
+        //two cards of the same suit
+        if (stringcmp(card1.suit, card2.suit)) 
+            return card1Score + card2Score + sevenOfClubsValue;
 
-        if (card1Score > card2Score) return card1Score + sevenOfClubsValue;
-        else return card2Score + sevenOfClubsValue;
+        //high card
+        if (card1Score > card2Score)
+            return card1Score + sevenOfClubsValue;
+        else 
+            return card2Score + sevenOfClubsValue;
     }
-
-    if (stringcmp(cards[0].cardType, cards[1].cardType) && stringcmp(cards[1].cardType, cards[2].cardType))
-    {
-        return getCardScore(cards[0].cardType) * 3;
-    }
-
-    if (stringcmp(cards[0].suit, cards[1].suit) && stringcmp(cards[1].suit, cards[2].suit))
-    {
+    if (stringcmp(cards[0].suit, cards[1].suit) && stringcmp(cards[1].suit, cards[2].suit)) //All suits are the same
         return getCardScore(cards[0].cardType) + getCardScore(cards[1].cardType) + getCardScore(cards[2].cardType);
-    }
-    if (stringcmp(cards[0].suit, cards[1].suit))
-    {
+    if (stringcmp(cards[0].suit, cards[1].suit)) //first two cards are the same
         return getCardScore(cards[0].cardType) + getCardScore(cards[1].cardType);
-    }
-    if (stringcmp(cards[0].suit, cards[2].suit))
-    {
+    if (stringcmp(cards[0].suit, cards[2].suit)) //second two
         return getCardScore(cards[0].cardType) + getCardScore(cards[2].cardType);
-    }
-    if (stringcmp(cards[1].suit, cards[2].suit))
-    {
+    if (stringcmp(cards[1].suit, cards[2].suit)) //first and third
         return getCardScore(cards[1].cardType) + getCardScore(cards[2].cardType);
-    }
+
 
     unsigned sevensCount = 0;
     unsigned acesCount = 0;
-
     for (int i = 0; i < cardsForEachPlayer; i++)
     {
         if (stringcmp(cards[i].cardType, "A")) acesCount++;
         if (stringcmp(cards[i].cardType, "7")) sevensCount++;
     }
 
-    if (acesCount >= 2) return 22;
-    if (acesCount >= 2) return 23;
+    if (acesCount >= 2) 
+        return 22;
+    if (sevensCount >= 2) 
+        return 23;
 
     else
     {
@@ -336,110 +324,83 @@ unsigned getHandScore(Card* cards)
     }
 }
 
-void stringcpy(char* dest, const char* src)
+void determineWinner(Player* players, unsigned pot)
 {
-    while (*src)
+    unsigned highestScore = 0;
+    unsigned playerWithHighScore = 0;
+    for (int i = 0; i < playerCount; i++)
     {
-        *dest = *src;
-        dest++;
-        src++;
+        unsigned currScore = getHandScore(players[i].cards);
+        if (currScore > highestScore)
+        {
+            highestScore = currScore;
+            playerWithHighScore = i;
+        }
     }
-    *dest = '\0';
+
+    unsigned numberOfPlayersWithHighestScore = 0;
+    for (int i = 0; i < playerCount; i++)
+    {
+        unsigned currScore = getHandScore(players[i].cards);
+        if (currScore == highestScore)
+            numberOfPlayersWithHighestScore++;
+    }
+
+    if (numberOfPlayersWithHighestScore == 1)
+    {
+        std::cout << "Player " << playerWithHighScore + 1 << " wins!";
+        players[playerWithHighScore].money += pot;
+    }
+    if (numberOfPlayersWithHighestScore > 1)
+    {
+        std::cout << "It is a tie\n";
+        int sumToPay = pot / 2;
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (getHandScore(players[i].cards) < highestScore)
+            {
+                char choice;
+                std::cout << "Player " << i + 1 << ", would you like to enter the tie? You have to pay " << sumToPay << "(y\\n): ";
+                std::cin >> choice;
+                if (choice == 'y')
+                {
+                    players[i].money -= sumToPay;
+                    pot += sumToPay;
+                    players[i].isActive = true;
+                }
+                else
+                {
+                    players[i].isActive = false;
+                }
+            }
+            else
+                players[i].isActive = true;
+
+        }
+
+        shuffleDeck();
+        dealCards(players);
+        printPlayersCards(players);
+
+        bettingLoop(players, pot);
+        determineWinner(players, pot);
+    }
 }
-
-void testHandScore()
+void printPlayersCards(Player* players)
 {
-    Card cards[3];
-
-    // Test case 1: (9 бройки)
-    stringcpy(cards[0].cardType, "7"); stringcpy(cards[0].suit, "H");
-    stringcpy(cards[1].cardType, "9"); stringcpy(cards[1].suit, "D");
-    stringcpy(cards[2].cardType, "9"); stringcpy(cards[2].suit, "C");
-    std::cout << "Test 1: Expected 9, Got " << getHandScore(cards) << "\n";
-
-    // Test case 2: (11 бройки)
-    stringcpy(cards[0].cardType, "10"); stringcpy(cards[0].suit, "S");
-    stringcpy(cards[1].cardType, "10"); stringcpy(cards[1].suit, "D");
-    stringcpy(cards[2].cardType, "A"); stringcpy(cards[2].suit, "C");
-    std::cout << "Test 2: Expected 11, Got " << getHandScore(cards) << "\n";
-
-    // Test case 3: (10 бройки)
-    stringcpy(cards[0].cardType, "J"); stringcpy(cards[0].suit, "S");
-    stringcpy(cards[1].cardType, "Q"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "10"); stringcpy(cards[2].suit, "C");
-    std::cout << "Test 3: Expected 10, Got " << getHandScore(cards) << "\n";
-
-    // Test case 4: (19 бройки)
-    stringcpy(cards[0].cardType, "K"); stringcpy(cards[0].suit, "H");
-    stringcpy(cards[1].cardType, "9"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "Q"); stringcpy(cards[2].suit, "C");
-    std::cout << "Test 4: Expected 19, Got " << getHandScore(cards) << "\n";
-
-    // Test case 5: (22 бройки)
-    stringcpy(cards[0].cardType, "A"); stringcpy(cards[0].suit, "S");
-    stringcpy(cards[1].cardType, "A"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "10"); stringcpy(cards[2].suit, "C");
-    std::cout << "Test 5: Expected 22, Got " << getHandScore(cards) << "\n";
-
-    // Test case 6: (21 бройки)
-    stringcpy(cards[0].cardType, "A"); stringcpy(cards[0].suit, "H");
-    stringcpy(cards[1].cardType, "K"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "10"); stringcpy(cards[2].suit, "C");
-    std::cout << "Test 6: Expected 21, Got " << getHandScore(cards) << "\n";
-
-    // Test case 7: (22 бройки)
-    stringcpy(cards[0].cardType, "8"); stringcpy(cards[0].suit, "S");
-    stringcpy(cards[1].cardType, "A"); stringcpy(cards[1].suit, "D");
-    stringcpy(cards[2].cardType, "7"); stringcpy(cards[2].suit, "C");
-    std::cout << "Test 7: Expected 22, Got " << getHandScore(cards) << "\n";
-
-    // Test case 8: (29 бройки)
-    stringcpy(cards[0].cardType, "10"); stringcpy(cards[0].suit, "H");
-    stringcpy(cards[1].cardType, "9"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "J"); stringcpy(cards[2].suit, "H");
-    std::cout << "Test 8: Expected 29, Got " << getHandScore(cards) << "\n";
-
-    // Test case 9: (30 бройки)
-    stringcpy(cards[0].cardType, "Q"); stringcpy(cards[0].suit, "C");
-    stringcpy(cards[1].cardType, "Q"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "Q"); stringcpy(cards[2].suit, "D");
-    std::cout << "Test 9: Expected 30, Got " << getHandScore(cards) << "\n";
-
-    // Test case 10: (31 бройки)
-    stringcpy(cards[0].cardType, "7"); stringcpy(cards[0].suit, "C");
-    stringcpy(cards[1].cardType, "K"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "K"); stringcpy(cards[2].suit, "D");
-    std::cout << "Test 10: Expected 31, Got " << getHandScore(cards) << "\n";
-
-    // Test case 11: (21 бройки)
-    stringcpy(cards[0].cardType, "7"); stringcpy(cards[0].suit, "C");
-    stringcpy(cards[1].cardType, "K"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "Q"); stringcpy(cards[2].suit, "D");
-    std::cout << "Test 11: Expected 21, Got " << getHandScore(cards) << "\n";
-
-    // Test case 12: (32 бройки)
-    stringcpy(cards[0].cardType, "7"); stringcpy(cards[0].suit, "C");
-    stringcpy(cards[1].cardType, "A"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "K"); stringcpy(cards[2].suit, "H");
-    std::cout << "Test 12: Expected 32, Got " << getHandScore(cards) << "\n";
-
-    // Test case 13: (34 бройки)
-    stringcpy(cards[0].cardType, "7"); stringcpy(cards[0].suit, "C");
-    stringcpy(cards[1].cardType, "7"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "7"); stringcpy(cards[2].suit, "D");
-    std::cout << "Test 13: Expected 34, Got " << getHandScore(cards) << "\n";
-
-    // Test case 14: (33 бройки)
-    stringcpy(cards[0].cardType, "A"); stringcpy(cards[0].suit, "C");
-    stringcpy(cards[1].cardType, "A"); stringcpy(cards[1].suit, "H");
-    stringcpy(cards[2].cardType, "A"); stringcpy(cards[2].suit, "D");
-    std::cout << "Test 14: Expected 33, Got " << getHandScore(cards) << "\n";
+    for (int i = 0; i < playerCount; i++)
+    {
+        std::cout << "Player " << i + 1 << "'s cards:\n";
+        for (int j = 0; j < cardsForEachPlayer; j++)
+        {
+            std::cout << players[i].cards[j].cardType << players[i].cards[j].suit << ' ';
+        }
+        std::cout << " (Score: " << getHandScore(players[i].cards) << ")\n";
+    }
 }
 
 int main()
 {
-    testHandScore();
-
     std::cout << "How many players are playing(2-9)?\n";
     while (true)
     {
@@ -448,15 +409,25 @@ int main()
         std::cerr << "Invalid number of players. Please enter a number between 2 and 9.\n";
     }
 
+
     inflateDeck();
-    shuffleDeck();
-
     Player* players = new Player[playerCount];
-    dealCards(players);
-    printPlayersCards(players);
 
-    unsigned pot = 0;
-    bettingLoop(players, pot);
+    while (true)
+    {
+        shuffleDeck();
+        dealCards(players);
+        printPlayersCards(players);
+
+        unsigned pot = 0;
+        bettingLoop(players, pot);
+        determineWinner(players, pot);
+        char choice;
+        std::cout << "Start a new game? (y/n): ";
+        std::cin >> choice;
+        if (choice != 'y')
+            break;
+    }
     releaseMemory(players);
 
     return 0;
