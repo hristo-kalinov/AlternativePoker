@@ -11,7 +11,7 @@ const unsigned deckSize = cardTypesSize * suitsSize;
 const unsigned CHIP_VALUE = 10;
 const char cardTypes[][cardTypeStringSize] = { "7", "8", "9", "10", "J", "Q", "K", "A" };
 const char suits[][suitStringSize] = { "C", "D", "H", "S" };
-
+const unsigned maxPlayerCount = 9;
 struct Card
 {
     char cardType[cardTypeStringSize];
@@ -180,6 +180,7 @@ void handleCall(Player& player, unsigned& pot, int currentBet)
     {
         std::cout << "Player cannot afford to call and must fold.\n";
         player.isActive = false;
+        player.hasActed = true;
     }
     else 
     {
@@ -541,10 +542,11 @@ void determineWinner(Player* players, unsigned pot)
 void createFile(Player* players)
 {
     const char* filename = "money.txt";
+    unsigned initialMoney = 1000;
     std::ofstream file(filename);
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < maxPlayerCount; i++)
     {
-        file << players[i].money << std::endl;
+        file << initialMoney << std::endl;
     }
 }
 
@@ -557,17 +559,18 @@ void readFile(Player* players)
         createFile(players);
         return;
     }
-    for (int i = 0; i < playerCount; i++)
+    for (int i = 0; i < maxPlayerCount; i++)
     {
         file >> players[i].money;
     }
+    file.close();
 }
 
 void writeFile(Player* players)
 {
     const char* filename = "money.txt";
     std::ofstream file(filename);
-    for (int i = 0; i < playerCount; i++) 
+    for (int i = 0; i < maxPlayerCount; i++)
     {
         file << players[i].money << std::endl;
     }
@@ -617,7 +620,7 @@ int main()
 {
     initializeGame();
     inflateDeck();
-    Player* players = new Player[playerCount];
+    Player* players = new Player[9];
     readFile(players);
     playGame(players);
     releaseMemory(players);
