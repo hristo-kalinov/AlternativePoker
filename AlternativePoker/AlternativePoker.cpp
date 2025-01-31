@@ -62,6 +62,11 @@ void copystr(const char* src, char* dest)
     *dest = '\0';
 }
 
+int charToInt(char ch)
+{
+    return ch - '0';
+}
+
 void inflateDeck()
 {
     unsigned counter = 0;
@@ -182,13 +187,18 @@ void handleCall(Player& player, unsigned& pot, int currentBet)
 void handleRaise(Player* players, Player& player, unsigned& pot, int& currentBet) 
 {
     unsigned amountToRaise = 0;
+    char amountToRaiseCh;
     std::cout << "Amount to Raise: ";
-    std::cin >> amountToRaise;
+
+    std::cin >> amountToRaiseCh;
+    amountToRaise = charToInt(amountToRaiseCh);
 
     while (amountToRaise > player.money || amountToRaise <= 0) 
     {
         std::cout << "Invalid amount. You can raise up to " << player.money << ": ";
         std::cin >> amountToRaise;
+        std::cin >> amountToRaiseCh;
+        amountToRaise = charToInt(amountToRaiseCh);
     }
 
     currentBet += amountToRaise;
@@ -460,6 +470,8 @@ void determineWinner(Player* players, unsigned pot)
     unsigned playerWithHighScore = 0;
     for (int i = 0; i < playerCount; i++)
     {
+        if (!players[i].isActive)
+            continue;
         unsigned currScore = getHandScore(players[i].cards);
         if (currScore > highestScore)
         {
@@ -471,6 +483,8 @@ void determineWinner(Player* players, unsigned pot)
     unsigned numberOfPlayersWithHighestScore = 0;
     for (int i = 0; i < playerCount; i++)
     {
+        if (!players[i].isActive)
+            continue;
         unsigned currScore = getHandScore(players[i].cards);
         if (currScore == highestScore)
             numberOfPlayersWithHighestScore++;
@@ -497,14 +511,19 @@ void determineWinner(Player* players, unsigned pot)
                     players[i].money -= sumToPay;
                     pot += sumToPay;
                     players[i].isActive = true;
+                    players[i].hasActed = false;
                 }
                 else
                 {
                     players[i].isActive = false;
+                    players[i].hasActed = true;
                 }
             }
             else
+            {
                 players[i].isActive = true;
+                players[i].hasActed = false; 
+            }
 
         }
 
@@ -558,7 +577,9 @@ void initializeGame()
     std::cout << "How many players are playing (2-9)?\n";
     while (true)
     {
-        std::cin >> playerCount;
+        char playerCountCh;
+        std::cin >> playerCountCh; //Use char to avoid infinite loop on invalid character
+        playerCount = charToInt(playerCountCh); 
         if (playerCount >= 2 && playerCount <= 9) break;
         std::cerr << "Invalid number of players. Please enter a number between 2 and 9.\n";
     }
@@ -569,7 +590,10 @@ void playGame(Player* players)
     while (true)
     {
         for (int i = 0; i < playerCount; i++)
+        {
             players[i].isActive = true;
+            players[i].hasActed = false;
+        }
         shuffleDeck();
         dealCards(players);
         printPlayersCards(players);
