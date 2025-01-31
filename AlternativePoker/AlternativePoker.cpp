@@ -62,11 +62,6 @@ void copystr(const char* src, char* dest)
     *dest = '\0';
 }
 
-int charToInt(char ch)
-{
-    return ch - '0';
-}
-
 void inflateDeck()
 {
     unsigned counter = 0;
@@ -131,13 +126,22 @@ bool onePlayerActive(Player* players)
 
 void initializeBetting(Player* players, unsigned& pot, int& currentBet) 
 {
-    for (int i = 0; i < playerCount; i++) 
+    currentBet = CHIP_VALUE;
+    for (int i = 0; i < playerCount; i++)
     {
-        players[i].totalContribution += CHIP_VALUE;
-        players[i].isActive = true;
-        players[i].money -= CHIP_VALUE;
-        pot += CHIP_VALUE;
-        currentBet += CHIP_VALUE;
+        if (players[i].money >= CHIP_VALUE)
+        {
+            players[i].totalContribution += CHIP_VALUE;
+            players[i].isActive = true;
+            players[i].money -= CHIP_VALUE;
+            pot += CHIP_VALUE;
+        }
+        else
+        {
+            players[i].isActive = false;
+            players[i].hasActed = true;
+            players[i].totalContribution = 0;
+        }
     }
 }
 
@@ -149,7 +153,8 @@ void displayPlayerStatus(const Player& player, int playerIndex, unsigned pot, in
     std::cout << "Your total contribution: " << player.totalContribution << "\n";
     std::cout << "Your money: " << player.money << "\n";
     std::cout << "Your cards: ";
-    for (int j = 0; j < cardsForEachPlayer; j++) {
+    for (int j = 0; j < cardsForEachPlayer; j++) 
+    {
         std::cout << player.cards[j].cardType << player.cards[j].suit << " ";
     }
     std::cout << "\n";
@@ -160,7 +165,8 @@ char getPlayerAction()
     char action;
     std::cout << "Choose an action: (c) Call, (r) Raise, (f) Fold\n";
     std::cin >> action;
-    while (action != 'c' && action != 'r' && action != 'f') {
+    while (action != 'c' && action != 'r' && action != 'f')
+    {
         std::cout << "Invalid action. Please choose (c) Call, (r) Raise, or (f) Fold: ";
         std::cin >> action;
     }
@@ -187,18 +193,14 @@ void handleCall(Player& player, unsigned& pot, int currentBet)
 void handleRaise(Player* players, Player& player, unsigned& pot, int& currentBet) 
 {
     unsigned amountToRaise = 0;
-    char amountToRaiseCh;
     std::cout << "Amount to Raise: ";
 
-    std::cin >> amountToRaiseCh;
-    amountToRaise = charToInt(amountToRaiseCh);
+    std::cin >> amountToRaise;
 
     while (amountToRaise > player.money || amountToRaise <= 0) 
     {
         std::cout << "Invalid amount. You can raise up to " << player.money << ": ";
         std::cin >> amountToRaise;
-        std::cin >> amountToRaiseCh;
-        amountToRaise = charToInt(amountToRaiseCh);
     }
 
     currentBet += amountToRaise;
@@ -578,8 +580,7 @@ void initializeGame()
     while (true)
     {
         char playerCountCh;
-        std::cin >> playerCountCh; //Use char to avoid infinite loop on invalid character
-        playerCount = charToInt(playerCountCh); 
+        std::cin >> playerCount;
         if (playerCount >= 2 && playerCount <= 9) break;
         std::cerr << "Invalid number of players. Please enter a number between 2 and 9.\n";
     }
